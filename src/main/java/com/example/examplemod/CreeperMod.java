@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -261,22 +262,29 @@ public class CreeperMod
             //kunna få creepern att stanna/fortsätta följa med
             else if(creeper.getPersistentData().getBoolean("IsTamed") && itemStack.isEmpty())
             {
-                //togglar boolean om den stannar eller följer med
-                boolean isStill = creeper.getPersistentData().getBoolean("IsStill");
-                creeper.getPersistentData().putBoolean("IsStill", !isStill);
+                //hämtar ägare
+                UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
 
-                //kör partiklar och ljudeffekter
-                if(creeper.level() instanceof ServerLevel serverLevel){
-                    serverLevel.sendParticles(ParticleTypes.SMOKE,
-                            creeper.getX(), creeper.getY() + 1.5, creeper.getZ(),
-                            5, 0.5, 0.5, 0.5, 0.02);
+                if (player.getUUID().equals(ownerId)) {
+                    //togglar boolean om den stannar eller följer med
+                    boolean isStill = creeper.getPersistentData().getBoolean("IsStill");
+                    creeper.getPersistentData().putBoolean("IsStill", !isStill);
 
-                    creeper.level().playSound(null, creeper.blockPosition(),
-                            SoundEvents.AXOLOTL_IDLE_AIR, SoundSource.NEUTRAL, 1.0F, 1.2F);
+                    //kör partiklar och ljudeffekter
+                    if (creeper.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.sendParticles(ParticleTypes.SMOKE,
+                                creeper.getX(), creeper.getY() + 1.5, creeper.getZ(),
+                                5, 0.5, 0.5, 0.5, 0.02);
+
+                        creeper.level().playSound(null, creeper.blockPosition(),
+                                SoundEvents.AXOLOTL_IDLE_AIR, SoundSource.NEUTRAL, 1.0F, 1.2F);
+                    }
+
+                    event.setCanceled(true);
+                    event.setCancellationResult(InteractionResult.SUCCESS);
+                } else {
+                    player.displayClientMessage(Component.literal("Det här är inte din creeper!"), true);
                 }
-
-                event.setCanceled(true);
-                event.setCancellationResult(InteractionResult.SUCCESS);
 
             }
         }
