@@ -138,7 +138,7 @@ public class ExampleMod
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
     }
-
+//här börjar egna tillägg
     @SubscribeEvent
     public void onCreeperTick(LivingEvent.LivingTickEvent event)
     {
@@ -197,6 +197,7 @@ public class ExampleMod
                     //säger åt creeper att springa till nya position i hastighet 1.5
                     creeper.getNavigation().moveTo(escapeX, creeper.getY(), escapeZ, 1.5);
 
+                    //lägger till tårar och ljudeffekt när creeper ser svärd
                     if(!creeper.level().isClientSide && creeper.level() instanceof ServerLevel serverLevel){
 
                         if(creeper.level().getGameTime() % 10 == 0){
@@ -210,7 +211,7 @@ public class ExampleMod
                     }
 
                 }
-                //i annat fall kör vanliga minecraft kod
+                //i annat fall kör vanliga minecraft koden
                 else {
                 }
             }
