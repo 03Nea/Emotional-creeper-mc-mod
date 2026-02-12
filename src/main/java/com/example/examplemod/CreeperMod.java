@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -134,6 +135,8 @@ public class CreeperMod
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
     }
+
+
 //här börjar egna tillägg
     @SubscribeEvent
     public void onCreeperTick(LivingEvent.LivingTickEvent event)
@@ -149,6 +152,12 @@ public class CreeperMod
                     creeper.setSwellDir(-1);
                     creeper.setTarget(null);
                     creeper.setSilent(true);
+
+                    if(creeper.getPersistentData().getBoolean("IsStill"))
+                    {
+                        creeper.getNavigation().stop();
+                        return;
+                    }
 
                     UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
                     Player owner = creeper.level().getPlayerByUUID(ownerId);
@@ -223,7 +232,7 @@ public class CreeperMod
             Player player = event.getEntity();
             ItemStack itemStack = event.getItemStack();
 
-            if(itemStack.is(ItemTags.FLOWERS))
+            if(itemStack.is(ItemTags.FLOWERS) && !creeper.getPersistentData().getBoolean("IsTamed"))
             {
                 //spara data om user id och att creepern är tamed
                 creeper.getPersistentData().putUUID("OwnerUUID", player.getUUID());
@@ -248,6 +257,34 @@ public class CreeperMod
 
                 event.setCanceled(true);
                 event.setCancellationResult(InteractionResult.SUCCESS);
+
+            }
+            //kunna få creepern att stanna/fortsätta följa med
+            else if(creeper.getPersistentData().getBoolean("IsTamed") && itemStack.isEmpty())
+            {
+                //hämtar ägare
+                UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
+
+                if (player.getUUID().equals(ownerId)) {
+                    //togglar boolean om den stannar eller följer med
+                    boolean isStill = creeper.getPersistentData().getBoolean("IsStill");
+                    creeper.getPersistentData().putBoolean("IsStill", !isStill);
+
+                    //kör partiklar och ljudeffekter
+                    if (creeper.level() instanceof ServerLevel serverLevel) {
+                        serverLevel.sendParticles(ParticleTypes.SMOKE,
+                                creeper.getX(), creeper.getY() + 1.5, creeper.getZ(),
+                                5, 0.5, 0.5, 0.5, 0.02);
+
+                        creeper.level().playSound(null, creeper.blockPosition(),
+                                SoundEvents.AXOLOTL_IDLE_AIR, SoundSource.NEUTRAL, 1.0F, 1.2F);
+                    }
+
+                    event.setCanceled(true);
+                    event.setCancellationResult(InteractionResult.SUCCESS);
+                } else {
+                    player.displayClientMessage(Component.literal("Det här är inte din creeper!"), true);
+                }
 
             }
         }
