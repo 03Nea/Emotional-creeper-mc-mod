@@ -245,6 +245,7 @@ public class ExampleMod
                             SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.NEUTRAL, 1.0F, 1.0F);
                 }
 
+                //kontrollerar om player inte är i creative, tar då bort ett objekt ur stack
                 if(!player.getAbilities().instabuild){
                     itemStack.shrink(1);
                 }
