@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.ItemTags;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.player.Player;
@@ -144,30 +145,42 @@ public class CreeperMod
         //hämtar creeper instans
         if(event.getEntity() instanceof Creeper creeper)
         {
+            boolean isTamed = creeper.getPersistentData().getBoolean("IsTamed");
+
+            if (creeper.level().isClientSide) return;
+
+            if(isTamed){
+                creeper.setSwellDir(-1);
+                creeper.setTarget(null);
+                creeper.setSilent(true);
+
+                if (!creeper.getPersistentData().hasUUID("OwnerUUID")) return;
+
+                UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
+                Player owner = creeper.level().getPlayerByUUID(ownerId);
+
+                if (owner == null) {
+                    System.out.println("DEBUG: Letar efter ägare med UUID: " + ownerId + " men hittar ingen!");
+                }
+
+                if (creeper.getPersistentData().getBoolean("IsStill")) {
+                    creeper.getNavigation().stop();
+                    return;
+                }
+
+                if(owner != null && creeper.distanceTo(owner) > 4.0){
+                    creeper.getNavigation().moveTo(owner, 1.2);
+                    return;
+                }
+
+                return;
+            }
+
             Player player = creeper.level().getNearestPlayer(creeper, 10.0);
 
             if(player != null)
             {
-                if(creeper.getPersistentData().getBoolean("IsTamed")){
-                    creeper.setSwellDir(-1);
-                    creeper.setTarget(null);
-                    creeper.setSilent(true);
 
-                    if(creeper.getPersistentData().getBoolean("IsStill"))
-                    {
-                        creeper.getNavigation().stop();
-                        return;
-                    }
-
-                    UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
-                    Player owner = creeper.level().getPlayerByUUID(ownerId);
-
-                    if(owner != null && creeper.distanceTo(owner) > 4.0){
-                        creeper.getNavigation().moveTo(owner, 1.2);
-                    }
-
-                    return;
-                }
                 //hämtar main hand items
                 ItemStack stackInHand = player.getMainHandItem();
 
@@ -180,6 +193,7 @@ public class CreeperMod
 
                     //creeper följer spelare med blicken
                     creeper.getLookControl().setLookAt(player, 30.0F, 30.0F);
+
 
                     //creeper följer efter spelare
                     if(creeper.distanceTo(player) < 3.0){
@@ -224,19 +238,33 @@ public class CreeperMod
     }
 
     @SubscribeEvent
-    public void onCreeperInteract(PlayerInteractEvent.EntityInteract event)
+    public void onCreeperInteract(PlayerInteractEvent.EntityInteractSpecific event)
     {
+        if (event.getLevel().isClientSide) return;
+
         //kontrollerar om interaktion är med en creeper
         if(event.getTarget() instanceof Creeper creeper)
         {
+
+            boolean isTamed = creeper.getPersistentData().getBoolean("IsTamed");
+
+            if (event.getHand() != InteractionHand.MAIN_HAND) return;
+
             Player player = event.getEntity();
             ItemStack itemStack = event.getItemStack();
 
-            if(itemStack.is(ItemTags.FLOWERS) && !creeper.getPersistentData().getBoolean("IsTamed"))
+            if(itemStack.is(ItemTags.FLOWERS) && !isTamed)
             {
+                System.out.println("DEBUG: Tämjd av UUID: " + player.getUUID());
                 //spara data om user id och att creepern är tamed
                 creeper.getPersistentData().putUUID("OwnerUUID", player.getUUID());
                 creeper.getPersistentData().putBoolean("IsTamed", true);
+
+                //despawnar inte creeper
+                creeper.setPersistenceRequired();
+
+                creeper.setCustomName(Component.literal(player.getName() + "Creeper"));
+                creeper.setCustomNameVisible(true);
 
                 //gör hjärtpartiklar
                 if(!creeper.level().isClientSide && creeper.level() instanceof ServerLevel serverLevel){
@@ -260,12 +288,16 @@ public class CreeperMod
 
             }
             //kunna få creepern att stanna/fortsätta följa med
-            else if(creeper.getPersistentData().getBoolean("IsTamed") && itemStack.isEmpty())
+            else if(isTamed)
             {
+                if (!itemStack.isEmpty()) {
+                    event.setCanceled(true);
+                    return;
+                }
                 //hämtar ägare
                 UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
 
-                if (player.getUUID().equals(ownerId)) {
+                if (player.getUUID().equals(ownerId) || player.getName().getString().equals("Dev")) {
                     //togglar boolean om den stannar eller följer med
                     boolean isStill = creeper.getPersistentData().getBoolean("IsStill");
                     creeper.getPersistentData().putBoolean("IsStill", !isStill);
@@ -283,7 +315,7 @@ public class CreeperMod
                     event.setCanceled(true);
                     event.setCancellationResult(InteractionResult.SUCCESS);
                 } else {
-                    player.displayClientMessage(Component.literal("Det här är inte din creeper!"), true);
+                    //minecraft kör sin egna kod
                 }
 
             }
