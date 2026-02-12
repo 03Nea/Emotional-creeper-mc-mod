@@ -134,6 +134,8 @@ public class CreeperMod
             LOGGER.info("MINECRAFT NAME >> {}", Minecraft.getInstance().getUser().getName());
         }
     }
+
+
 //här börjar egna tillägg
     @SubscribeEvent
     public void onCreeperTick(LivingEvent.LivingTickEvent event)
@@ -149,6 +151,12 @@ public class CreeperMod
                     creeper.setSwellDir(-1);
                     creeper.setTarget(null);
                     creeper.setSilent(true);
+
+                    if(creeper.getPersistentData().getBoolean("IsStill"))
+                    {
+                        creeper.getNavigation().stop();
+                        return;
+                    }
 
                     UUID ownerId = creeper.getPersistentData().getUUID("OwnerUUID");
                     Player owner = creeper.level().getPlayerByUUID(ownerId);
@@ -223,7 +231,7 @@ public class CreeperMod
             Player player = event.getEntity();
             ItemStack itemStack = event.getItemStack();
 
-            if(itemStack.is(ItemTags.FLOWERS))
+            if(itemStack.is(ItemTags.FLOWERS) && !creeper.getPersistentData().getBoolean("IsTamed"))
             {
                 //spara data om user id och att creepern är tamed
                 creeper.getPersistentData().putUUID("OwnerUUID", player.getUUID());
@@ -244,6 +252,27 @@ public class CreeperMod
                 //kontrollerar om player inte är i creative, tar då bort ett objekt ur stack
                 if(!player.getAbilities().instabuild){
                     itemStack.shrink(1);
+                }
+
+                event.setCanceled(true);
+                event.setCancellationResult(InteractionResult.SUCCESS);
+
+            }
+            //kunna få creepern att stanna/fortsätta följa med
+            else if(creeper.getPersistentData().getBoolean("IsTamed") && itemStack.isEmpty())
+            {
+                //togglar boolean om den stannar eller följer med
+                boolean isStill = creeper.getPersistentData().getBoolean("IsStill");
+                creeper.getPersistentData().putBoolean("IsStill", !isStill);
+
+                //kör partiklar och ljudeffekter
+                if(creeper.level() instanceof ServerLevel serverLevel){
+                    serverLevel.sendParticles(ParticleTypes.SMOKE,
+                            creeper.getX(), creeper.getY() + 1.5, creeper.getZ(),
+                            5, 0.5, 0.5, 0.5, 0.02);
+
+                    creeper.level().playSound(null, creeper.blockPosition(),
+                            SoundEvents.AXOLOTL_IDLE_AIR, SoundSource.NEUTRAL, 1.0F, 1.2F);
                 }
 
                 event.setCanceled(true);
