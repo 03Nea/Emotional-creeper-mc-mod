@@ -31,6 +31,7 @@ displayName="Emotional Creepers" #mandatory
 #logoFile="examplemod.png" #optional
 # A text field displayed in the mod UI
 #credits="" #optional
+mixinConfigs="emotional_creeper/mixin.json"
 # A text field displayed in the mod UI
 authors="Linnea Gottling & Alexander Abboud" #optional
 # Display Test controls the display for your mod in the server connection screen

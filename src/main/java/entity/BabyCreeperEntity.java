@@ -1,5 +1,6 @@
-package net.nea.emotionalcreeper.entity;
+package entity;
 
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -35,8 +36,6 @@ public class BabyCreeperEntity extends Creeper {
     @Override
     public void tick(){
         super.tick();
-        this.swell=0;
-        this.setSwellDir(-1);
 
         if(!this.level().isClientSide){
             age++;

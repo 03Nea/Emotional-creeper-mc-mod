@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "CreeperBreedingMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
