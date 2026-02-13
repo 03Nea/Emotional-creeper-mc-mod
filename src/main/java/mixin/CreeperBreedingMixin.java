@@ -25,7 +25,7 @@ import java.util.List;
 @Mixin(Creeper.class)
 public abstract class CreeperBreedingMixin {
 
-    @Inject(method = "mobInteract", at = @At("HEAD"), cancellable = true)
+    @Inject(method = {"mobInteract", "m_6071_"}, at = @At("HEAD"), cancellable = true, remap = true)
     private void onCreeperInteract(Player player, InteractionHand hand, CallbackInfoReturnable<InteractionResult> cir) {
         ItemStack itemStack = player.getItemInHand(hand);
 		System.out.println("Clicked creeper with: " + itemStack);
